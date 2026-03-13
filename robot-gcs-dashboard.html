@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Ground Control Station</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #0d1117;
+            --secondary-dark: #161b22;
+            --tertiary-dark: #21262d;
+            --accent-blue: #1f6feb;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-yellow: #d29922;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--primary-dark);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .gcs-container {
+            padding: 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            width: 380px;
+            background-color: var(--secondary-dark);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .status-section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .status-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: var(--accent-green);
+            font-family: 'Courier New', monospace;
+        }
+
+        .status-value.warning {
+            color: var(--accent-yellow);
+        }
+
+        /* Battery Progress Bar */
+        .battery-bar {
+            height: 6px;
+            background-color: var(--tertiary-dark);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .battery-fill {
+            height: 100%;
+            width: 86%;
+            background: linear-gradient(90deg, var(--accent-green) 0%, var(--accent-yellow) 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-emergency, .btn-recharge {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-emergency {
+            background-color: #f85149;
+            color: white;
+            box-shadow: 0 4px 12px rgba(248, 81, 73, 0.3);
+        }
+
+        .btn-emergency:hover {
+            background-color: #da3633;
+            box-shadow: 0 6px 16px rgba(248, 81, 73, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-emergency:active {
+            transform: translateY(0);
+        }
+
+        .btn-recharge {
+            background-color: var(--accent-yellow);
+            color: #000;
+            box-shadow: 0 4px 12px rgba(217, 153, 34, 0.3);
+        }
+
+        .btn-recharge:hover {
+            background-color: #c29c1f;
+            box-shadow: 0 6px 16px rgba(217, 153, 34, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-recharge:active {
+            transform: translateY(0);
+        }
+
+        /* Movement Controls */
+        .movement-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .directional-pad {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 0.5rem;
+            width: 120px;
+            margin: 0 auto;
+        }
+
+        .dir-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(31, 111, 235, 0.3);
+        }
+
+        .dir-btn:hover {
+            background-color: #388bfd;
+            box-shadow: 0 6px 12px rgba(31, 111, 235, 0.4);
+            transform: scale(1.05);
+        }
+
+        .dir-btn:active {
+            transform: scale(0.98);
+        }
+
+        .dir-up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .dir-left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .dir-down {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .dir-right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .movement-hint {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 0.5rem;
+        }
+
+        /* Grid/Map View */
+        .map-container {
+            flex: 1;
+            background-color: var(--secondary-dark);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(0deg, var(--tertiary-dark) 1px, transparent 1px),
+                linear-gradient(90deg, var(--tertiary-dark) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .map-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .map-content h2 {
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .robot-icon {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 20px rgba(31, 111, 235, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(31, 111, 235, 0.5);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(31, 111, 235, 0.7);
+                transform: scale(1.05);
+            }
+        }
+
+        .map-grid-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: var(--tertiary-dark);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .grid-stat {
+            text-align: center;
+        }
+
+        .grid-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .grid-stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Notification Toast */
+        .notification-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 1050;
+        }
+
+        .notification {
+            background-color: var(--secondary-dark);
+            border-left: 4px solid var(--accent-green);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.4s ease, slideOut 0.4s ease 2.6s forwards;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            border-left-color: var(--accent-green);
+        }
+
+        .notification.error {
+            border-left-color: var(--accent-red);
+        }
+
+        .notification-icon {
+            font-size: 1.3rem;
+            color: var(--accent-green);
+        }
+
+        .notification.error .notification-icon {
+            color: var(--accent-red);
+        }
+
+        .notification-text {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        /* Scrollbar Styling */
+        .control-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background-color: var(--secondary-dark);
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb:hover {
+            background-color: var(--accent-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .gcs-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .control-panel {
+                width: 100%;
+            }
+
+            .map-container {
+                min-height: 400px;
+            }
+        }
+
+        /* Title Bar */
+        .title-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--tertiary-dark);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49%, 100% {
+                opacity: 1;
+            }
+            50%, 99% {
+                opacity: 0.5;
+            }
+        }
+
+        .title-bar h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="title-bar">
+        <div class="status-indicator"></div>
+        <h1>Robot Ground Control Station</h1>
+    </div>
+
+    <div class="gcs-container" style="padding-top: 60px;">
+        <!-- Control Panel (Left) -->
+        <div class="control-panel">
+            <div class="status-section">
+                <h3>System Status</h3>
+                <div class="status-item">
+                    <span class="status-label">Mode:</span>
+                    <span class="status-value">Commander</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Battery:</span>
+                    <span class="status-value">86%</span>
+                </div>
+                <div class="battery-bar">
+                    <div class="battery-fill"></div>
+                </div>
+                <div class="status-item" style="margin-top: 1rem;">
+                    <span class="status-label">Position:</span>
+                    <span class="status-value">X: 42, Y: 28</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value">✓ OK</span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-emergency" id="emergencyBtn" title="Immediate stop">
+                    <i class="fas fa-exclamation-triangle"></i> Emergency Stop
+                </button>
+                <button class="btn-recharge" id="rechargeBtn" title="Return to base">
+                    <i class="fas fa-battery-full"></i> Recharge
+                </button>
+            </div>
+
+            <div class="movement-controls">
+                <h3 style="text-align: center; font-size: 0.95rem; color: var(--text-secondary);">Movement</h3>
+                <div class="directional-pad">
+                    <button class="dir-btn dir-up" id="moveUp" title="Move Up (↑)">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button class="dir-btn dir-left" id="moveLeft" title="Move Left (←)">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button class="dir-btn dir-down" id="moveDown" title="Move Down (↓)">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button class="dir-btn dir-right" id="moveRight" title="Move Right (→)">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <p class="movement-hint">Press buttons or use arrow keys</p>
+            </div>
+        </div>
+
+        <!-- Map/Grid View (Right) -->
+        <div class="map-container">
+            <div class="grid-background"></div>
+            <div class="map-content">
+                <div class="robot-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h2>Grid View & Robot Location</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Real-time position tracking and navigation map
+                </p>
+                <div class="map-grid-info">
+                    <div class="grid-stat">
+                        <div class="grid-stat-label">Distance</div>
+                        <div class="grid-stat-value">2.3 m</div>
+                    </div>
+                    <div class="grid-stat">
+                        <div class="grid-stat-label">Heading</div>
+                        <div class="grid-stat-value">45°</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Notification System
+        function showNotification(message, type = 'success', duration = 3000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            
+            notification.innerHTML = `
+                <i class="fas ${icon} notification-icon"></i>
+                <div class="notification-text">${message}</div>
+            `;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, duration + 400);
+        }
+
+        // Movement Button Handlers
+        const moveUp = document.getElementById('moveUp');
+        const moveDown = document.getElementById('moveDown');
+        const moveLeft = document.getElementById('moveLeft');
+        const moveRight = document.getElementById('moveRight');
+        const emergencyBtn = document.getElementById('emergencyBtn');
+        const rechargeBtn = document.getElementById('rechargeBtn');
+
+        moveUp.addEventListener('click', () => {
+            showNotification('Moving forward ↑');
+        });
+
+        moveDown.addEventListener('click', () => {
+            showNotification('Moving backward ↓');
+        });
+
+        moveLeft.addEventListener('click', () => {
+            showNotification('Turning left ←');
+        });
+
+        moveRight.addEventListener('click', () => {
+            showNotification('Turning right →');
+        });
+
+        emergencyBtn.addEventListener('click', () => {
+            showNotification('⚠️ Emergency stop activated!', 'error');
+        });
+
+        rechargeBtn.addEventListener('click', () => {
+            showNotification('🔌 Returning to charging station...');
+        });
+
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    moveUp.click();
+                    moveUp.style.transform = 'scale(0.98)';
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    moveDown.click();
+                    moveDown.style.transform = 'scale(0.98)';
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    moveLeft.click();
+                    moveLeft.style.transform = 'scale(0.98)';
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    moveRight.click();
+                    moveRight.style.transform = 'scale(0.98)';
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', () => {
+            moveUp.style.transform = '';
+            moveDown.style.transform = '';
+            moveLeft.style.transform = '';
+            moveRight.style.transform = '';
+        });
+
+        // Initial notification
+        window.addEventListener('load', () => {
+            showNotification('Ground Control Station Ready', 'success');
+        });
+    </script>
+</body>
+</html>
